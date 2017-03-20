@@ -100,7 +100,7 @@ export default class Main extends Component {
   render() {
     return (
       <Navigator
-        initialRoute={{name: 'signup'}}
+        initialRoute={{name: 'switchlogin'}}
         renderScene={this._renderScene}
         configureScene={() => {return Navigator.SceneConfigs.FloatFromRight;}}
         style={styles.container}

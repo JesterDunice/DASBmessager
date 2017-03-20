@@ -1,3 +1,6 @@
+/**
+ * Created by dunice on 20.03.17.
+ */
 import React, { Component } from 'react'
 import {
   View,
@@ -6,7 +9,8 @@ import {
   StyleSheet,
   Platform,
   Keyboard,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  TouchableHighlight
 } from 'react-native'
 
 const LoginView = Platform.select({
@@ -14,6 +18,7 @@ const LoginView = Platform.select({
   android: () => View,
 })();
 
+import TopBar from '../components/topBar';
 import Button from '../components/button'
 import SendBird from 'sendbird'
 var sb = null;
@@ -22,57 +27,72 @@ export default class Login extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      userId: '',
-      username: '',
       connectLabel: 'CONNECT',
-      buttonDisabled: true,
-      errorMessage: ''
+      userNickname: '',
+      password: '',
+      errorMessage: '',
+      buttonDisabled: false,
+      connection: false
     };
     this._onPressConnect = this._onPressConnect.bind(this);
-    this._onPressOpenChannel = this._onPressOpenChannel.bind(this);
-    this._onPressGroupChannel = this._onPressGroupChannel.bind(this)
+    this._notRegistered = this._notRegistered.bind(this);
+  }
+
+  componentDidMount(){
+    if (this.state.connection){
+      sb.disconnect();
+      var _SELF = this;
+      _SELF.setState({
+        buttonDisabled: false,
+        connectLabel: 'CONNECT',
+        connection: false
+      });
+    }
   }
 
   _onPressConnect() {
     Keyboard.dismiss();
 
-    if (!this.state.buttonDisabled) {
-      this._onPressDisconnect();
-      return;
-    }
-
-    if (this.state.username.trim().length == 0 || this.state.userId.trim().length == 0) {
+    if (this.state.userNickname.trim().length == 0 || this.state.password.trim().length == 0) {
       this.setState({
-        userId: '',
-        username: '',
-        errorMessage: 'User ID and Nickname must be required.'
+        userNickname: '',
+        password: '',
+        errorMessage: 'Value is required and can\'t be empty'
       });
       return;
     }
 
-    var regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi
-    if (regExp.test(this.state.username) || regExp.test(this.state.userId)) {
+    let regExp = /[\{\}\[\]\/?.,;:|\)*~`!^\-_+<>@\#$%&\\\=\(\'\"]/gi
+    if (regExp.test(this.state.userNickname) || regExp.test(this.state.password)) {
       this.setState({
-        userId: '',
-        username: '',
-        errorMessage: 'Please only alphanumeric characters.'
+        buttonDisabled: false,
+        userNickname: '',
+        password: '',
+        errorMessage: 'Please use only alphanumeric characters.'
       });
       return;
     }
+
+    this.setState({
+      errorMessage: '',
+      buttonDisabled: true,
+      connectLabel: 'CONNECTING...'
+    });
 
     sb = SendBird.getInstance();
     var _SELF = this;
-    sb.connect(_SELF.state.userId, function (user, error) {
+    sb.connect(_SELF.state.userNickname, function (user, error) {
       if (error) {
         _SELF.setState({
-          userId: '',
-          username: '',
+          buttonDisabled: false,
+          userNickname: '',
+          password: '',
           errorMessage: 'Login Error'
         });
         console.log(error);
         return;
       }
-      
+
       if (Platform.OS === 'ios') {
         if (sb.getPendingAPNSToken()){
           sb.registerAPNSPushTokenForCurrentUser(sb.getPendingAPNSToken(), function(result, error){
@@ -89,40 +109,36 @@ export default class Login extends Component {
         }
       }
 
-      sb.updateCurrentUserInfo(_SELF.state.username, '', function(response, error) {
-        _SELF.setState({
-          buttonDisabled: false,
-          connectLabel: 'DISCONNECT',
-          errorMessage: ''
+      sb.OpenChannel.getChannel('DASBchannel_1', function (channel, error) {
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        channel.enter(function(response, error){
+          if (error) {
+            console.error(error);
+            return;
+          }
+          _SELF.props.navigator.push({name: 'chat', channel: channel});
         });
       });
     });
   }
 
-  _onPressOpenChannel() {
-    this.props.navigator.push({name: 'openChannel'});
+  _onBackPress() {
+    this.props.navigator.pop();
   }
 
-  _onPressGroupChannel() {
-    this.props.navigator.push({name: 'groupChannel'});
-  }
-
-  _onPressDisconnect() {
-    sb.disconnect();
-    this.setState({
-      userId: '',
-      username: '',
-      errorMessage: '',
-      buttonDisabled: true,
-      connectLabel: 'CONNECT'
-    });
+  _notRegistered(){
+    this.props.navigator.pop();
   }
 
   _buttonStyle() {
     return {
-      backgroundColor: '#6E5BAA',
-      underlayColor: '#51437f',
-      borderColor: '#6E5BAA',
+      backgroundColor: '#66aa33',
+      underlayColor: '#448833',
+      borderColor: '#66aa33',
       disabledColor: '#ababab',
       textColor: '#ffffff'
     }
@@ -130,47 +146,52 @@ export default class Login extends Component {
 
   render() {
     return (
-      <LoginView behavior='padding' style={styles.container} >        
+      <LoginView behavior='padding' style={styles.container} >
+        <View style={styles.topbar}>
+          <TopBar
+            onBackPress={this._onBackPress.bind(this)}
+            title={'Login'}
+          />
+        </View>
+
         <View style={styles.loginContainer}>
           <TextInput
             style={styles.input}
-            value={this.state.userId}
-            onChangeText={(text) => this.setState({userId: text})}
-            onSubmitEditing={Keyboard.dismiss}
-            placeholder={'Enter User ID'}
-            maxLength={12}
-            multiline={false}
-            />
-          <TextInput
-            style={[styles.input, {marginTop: 10}]}
-            value={this.state.username}
-            onChangeText={(text) => this.setState({username: text})}
+            value={this.state.userNickname}
+            onChangeText={(text) => this.setState({userNickname: text})}
             onSubmitEditing={Keyboard.dismiss}
             placeholder={'Enter User Nickname'}
             maxLength={12}
             multiline={false}
-            />
+          />
+
+          <TextInput
+            style={[styles.input, {marginTop: 10}]}
+            value={this.state.password}
+            onChangeText={(text) => this.setState({password: text})}
+            onSubmitEditing={Keyboard.dismiss}
+            placeholder={'Enter User Password'}
+            maxLength={12}
+            multiline={false}
+          />
 
           <Button
             text={this.state.connectLabel}
+            disabled={this.state.buttonDisabled}
             style={this._buttonStyle()}
             onPress={this._onPressConnect}
           />
 
           <Text style={styles.errorLabel}>{this.state.errorMessage}</Text>
 
-          <Button
-            text={'Open Channel'}
-            style={this._buttonStyle()}
-            disabled={this.state.buttonDisabled}
-            onPress={this._onPressOpenChannel}
-          />
-          <Button
-            text={'Group Channel'}
-            style={this._buttonStyle()}
-            disabled={this.state.buttonDisabled}
-            onPress={this._onPressGroupChannel}
-          />
+          <TouchableHighlight
+            style={{justifyContent: 'center', alignItems: 'center'}}
+            onPress={this._notRegistered}
+            underlayColor={'#fff'}
+          >
+            <Text style={styles.registeredLabel}>Not registered?</Text>
+          </TouchableHighlight>
+
         </View>
       </LoginView>
     );
@@ -188,12 +209,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1
   },
+  topbar: {
+    height: 60,
+    flexDirection: 'row'
+  },
   input: {
     width: 250,
     color: '#555555',
     padding: 10,
     height: 50,
-    borderColor: '#6E5BAA',
+    borderColor: '#66aa33',
     borderWidth: 1,
     borderRadius: 4,
     alignSelf: 'center',
@@ -204,5 +229,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 10,
     width: 250
+  },
+  registeredLabel:{
+    color: '#000',
+    fontSize: 15,
+    marginTop: 80,
+    width: 250,
+    alignSelf: 'center',
+    textAlign: 'center',
   }
 });
+

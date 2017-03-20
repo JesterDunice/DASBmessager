@@ -23,11 +23,11 @@ export default class SwitchLogin extends Component {
   }
 
   _onPressLogin() {
-    this.props.navigator.push({name: 'signUp'});
+    this.props.navigator.push({name: 'signup'});
   }
 
   _onPressFbLogin() {
-    this.props.navigator.push({name: 'fbLogin'});
+    this.props.navigator.push({name: 'fblogin'});
   }
 
 

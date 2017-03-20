@@ -242,7 +242,7 @@ export default class Chat extends Component {
   }
 
   _onBackPress() {
-    this.props.route.refresh(this.state.channel);
+    //this.props.route.refresh(this.state.channel);
     this.props.navigator.pop();
   }
 

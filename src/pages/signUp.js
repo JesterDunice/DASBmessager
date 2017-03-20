@@ -164,7 +164,7 @@ export default class SignUp extends Component {
         <View style={styles.topbar}>
           <TopBar
             onBackPress={this._onBackPress.bind(this)}
-            title={''}
+            title={'Sign up'}
           />
         </View>
 
@@ -262,8 +262,8 @@ const styles = StyleSheet.create({
   },
   registeredLabel:{
     color: '#000',
-    fontSize: 13,
-    marginTop: 40,
+    fontSize: 15,
+    marginTop: 80,
     width: 250,
     alignSelf: 'center',
     textAlign: 'center',
